@@ -1,0 +1,105 @@
+/* Global Styles for Body */
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f9f9f9;
+    color: #333;
+}
+
+/* Navbar Styling */
+.navbar {
+    background: linear-gradient(90deg, #FF6347, #FFD700);  /* Gradient background */
+    padding: 20px 30px;
+}
+
+.navbar .navbar-nav .nav-link {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 10px 15px;
+}
+
+.navbar .navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);  /* Hover effect */
+    transform: scale(1.05);
+}
+
+.navbar-brand {
+    color: white;
+    font-size: 28px;
+}
+
+/* Logo Image */
+.logo-img {
+    height: 50px;
+    width: auto;  /* Ensure the logo fits well */
+}
+
+/* Cards Container */
+.card {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.card-body {
+    text-align: center;
+}
+
+.card-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.card-text {
+    font-size: 16px;
+    color: #555;
+}
+
+.card-btn {
+    background-color: white;
+    border: none;
+    padding: 10px 20px;
+    color: #333;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.card-btn:hover {
+    background-color: #1e2a5b;
+    color: white;
+}
+
+/* Card Image Size */
+.card-img-top {
+    height: 150px;
+    object-fit: cover;  /* Ensure image fits in the card and maintains aspect ratio */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .navbar .navbar-nav {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .card {
+        width: 100%;  /* Full width on smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .card {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+}
