@@ -77,15 +77,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
     }
     
-    // Handle category deletion
-    if (isset($_POST['delete_category'])) {
-        $sql = "DELETE FROM categories WHERE id = ?";
-        $stmt = $conn->prepare($sql);
+  // Handle category deletion
+// Handle category deletion
+if (isset($_POST['delete_category'])) {
+    try {
+        // Start transaction
+        $conn->begin_transaction();
+        
+        // First delete all subcategories
+        $delete_subcategories = "DELETE FROM subcategories WHERE parent_category_id = ?";
+        $stmt = $conn->prepare($delete_subcategories);
         $stmt->bind_param("i", $category_id);
         $stmt->execute();
-        header("Location: view_categories.php");
+        
+        // Then delete the category
+        $delete_category = "DELETE FROM categories WHERE id = ?";
+        $stmt = $conn->prepare($delete_category);
+        $stmt->bind_param("i", $category_id);
+        $stmt->execute();
+        
+        // Commit transaction
+        $conn->commit();
+        
+        $_SESSION['success'] = "Category deleted successfully!";
+        
+        // Use relative path for redirect (more reliable)
+        header("Location: view_categorie.php");
+        exit();
+    } catch (Exception $e) {
+        // Rollback transaction if error occurs
+        $conn->rollback();
+        $_SESSION['error'] = "Error deleting category: " . $e->getMessage();
+        header("Location: category_details.php?id=" . $category_id);
         exit();
     }
+}
+}
+// Handle category update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_category'])) {
+    $name = trim($_POST['name']);
+    $photo = $_POST['existing_photo']; // Default to existing photo
+    
+    // Validate category name
+    if (empty($name)) {
+        $_SESSION['error'] = "Category name cannot be empty";
+        header("Location: category_details.php?id=" . $category_id);
+        exit();
+    }
+
+    // Handle image upload if provided
+    if (!empty($_FILES['photo']['name']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+        $target_dir = "../uploads/categories/";
+        
+        // Create directory if it doesn't exist
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0755, true);
+        }
+
+        // Validate and process the image
+        $valid_extensions = ['jpg', 'jpeg', 'png', 'gif'];
+        $file_extension = strtolower(pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION));
+        
+        if (!in_array($file_extension, $valid_extensions)) {
+            $_SESSION['error'] = "Invalid file type. Only JPG, PNG, and GIF are allowed.";
+            header("Location: category_details.php?id=" . $category_id);
+            exit();
+        }
+
+        // Generate unique filename
+        $new_filename = uniqid() . '.' . $file_extension;
+        $target_path = $target_dir . $new_filename;
+
+        if (move_uploaded_file($_FILES['photo']['tmp_name'], $target_path)) {
+            $photo = "uploads/categories/" . $new_filename;
+            
+            // Delete old image if it exists and isn't a default
+            if (!empty($_POST['existing_photo']) && 
+                file_exists("../" . $_POST['existing_photo']) && 
+                strpos($_POST['existing_photo'], 'default') === false) {
+                @unlink("../" . $_POST['existing_photo']);
+            }
+        } else {
+            $_SESSION['error'] = "Error uploading image";
+            header("Location: category_details.php?id=" . $category_id);
+            exit();
+        }
+    }
+
+    // Update database
+    $sql = "UPDATE categories SET name = ?, photo = ? WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssi", $name, $photo, $category_id);
+    
+    if ($stmt->execute()) {
+        $_SESSION['success'] = "Category updated successfully!";
+    } else {
+        $_SESSION['error'] = "Error updating category: " . $conn->error;
+    }
+    
+    header("Location: category_details.php?id=" . $category_id);
+    exit();
 }
 
 // Fetch category details
@@ -97,7 +188,7 @@ $result = $stmt->get_result();
 $category = $result->fetch_assoc();
 
 if (!$category) {
-    header("Location: view_categories.php");
+    header("Location: view_categorie.php");
     exit();
 }
 
@@ -391,6 +482,9 @@ $subcategories = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </style>
 </head>
 <body>
+<?php include 'navbar.php'; ?>
+<!-- Display error/success messages -->
+
     <div class="container py-4 py-lg-5">
         <div class="category-header">
             <h1><i class="fas fa-tag me-2"></i><?php echo htmlspecialchars($category['name']); ?></h1>
@@ -415,7 +509,7 @@ $subcategories = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                         <i class="fas fa-trash me-2"></i> Delete Category
                     </button>
                     
-                    <a href="view_categories.php" class="btn btn-secondary">
+                    <a href="view_categorie.php" class="btn btn-secondary">
                         <i class="fas fa-arrow-left me-2"></i> Back to Categories
                     </a>
                 </div>
@@ -498,73 +592,81 @@ $subcategories = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
     </div>
     
-    <!-- Edit Category Modal -->
-    <div class="modal fade" id="editCategoryModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Category</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="POST" enctype="multipart/form-data">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Category Name</label>
-                            <input type="text" name="name" class="form-control" 
-                                   value="<?php echo htmlspecialchars($category['name']); ?>" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Category Image</label>
-                            <input type="hidden" name="existing_photo" value="<?php echo htmlspecialchars($category['photo']); ?>">
-                            
-                            <div class="file-upload">
-                                <label class="file-upload-btn">
-                                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i><br>
-                                    <span>Click to change image</span>
-                                    <span class="d-block small text-muted mt-1">(Leave blank to keep current image)</span>
-                                    <input type="file" name="photo" class="file-upload-input" accept="image/*">
-                                    <img src="../<?php echo htmlspecialchars($category['photo']); ?>" class="preview-image" id="categoryPreview">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" name="update_category" class="btn btn-primary">Save Changes</button>
-                    </div>
-                </form>
+ <!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCategoryModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Category
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <form id="editCategoryForm" method="POST" enctype="multipart/form-data" 
+      action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $category_id); ?>">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="categoryName" class="form-label">Category Name</label>
+                        <input type="text" class="form-control" id="categoryName" name="name" 
+                               value="<?php echo htmlspecialchars($category['name']); ?>" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Category Image</label>
+                        <input type="hidden" name="existing_photo" 
+                               value="<?php echo htmlspecialchars($category['photo']); ?>">
+                        
+                        <div class="file-upload">
+                            <label class="file-upload-btn">
+                                <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i><br>
+                                <span>Click to change image</span>
+                                <span class="d-block small text-muted mt-1">(Leave blank to keep current image)</span>
+                                <input type="file" name="photo" class="file-upload-input" accept="image/*">
+                                <img src="../<?php echo htmlspecialchars($category['photo']); ?>" 
+                                     class="preview-image" id="categoryPreview">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="update_category" class="btn btn-primary" id="saveCategoryChanges">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
     
     <!-- Delete Category Modal -->
-    <div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <p>Are you sure you want to permanently delete this category?</p>
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            <strong>Warning:</strong> This will also delete all subcategories under it!
-                        </div>
-                        <div class="text-center p-3 bg-light rounded">
-                            <h5 class="mb-0"><?php echo htmlspecialchars($category['name']); ?></h5>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" name="delete_category" class="btn btn-danger">Delete Permanently</button>
-                    </div>
-                </form>
+  <!-- Delete Category Modal -->
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <form method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']) . '?id=' . $category_id; ?>">
+                <div class="modal-body">
+                    <p>Are you sure you want to permanently delete this category?</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <strong>Warning:</strong> This will also delete all subcategories under it!
+                    </div>
+                    <div class="text-center p-3 bg-light rounded">
+                        <h5 class="mb-0"><?php echo htmlspecialchars($category['name']); ?></h5>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="delete_category" class="btn btn-danger">Delete Permanently</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -607,6 +709,143 @@ $subcategories = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 observer.observe(card);
             });
         });
+        // Image preview functionality with validation
+function readURL(input, previewId) {
+    if (input.files && input.files[0]) {
+        // Check file size (max 5MB)
+        if (input.files[0].size > 5 * 1024 * 1024) {
+            alert('File size exceeds 5MB limit');
+            input.value = ''; // Clear the file input
+            return;
+        }
+        
+        var reader = new FileReader();
+        
+        reader.onload = function(e) {
+            var preview = document.getElementById(previewId);
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Category image preview
+document.querySelector('input[name="photo"]')?.addEventListener('change', function() {
+    readURL(this, 'categoryPreview');
+});
+
+// Subcategory image preview
+document.querySelector('input[name="sub_photo"]')?.addEventListener('change', function() {
+    readURL(this, 'subcategoryPreview');
+});
+
+
+   
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize all Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Ensure modals work properly
+        var editModal = document.getElementById('editCategoryModal');
+        if (editModal) {
+            editModal.addEventListener('show.bs.modal', function (event) {
+                // Modal show logic if needed
+            });
+        }
+        
+        // Image preview functionality with validation
+        function readURL(input, previewId) {
+            if (input.files && input.files[0]) {
+                // Check file size (max 5MB)
+                if (input.files[0].size > 5 * 1024 * 1024) {
+                    alert('File size exceeds 5MB limit');
+                    input.value = ''; // Clear the file input
+                    return;
+                }
+                
+                var reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    var preview = document.getElementById(previewId);
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // Category image preview
+        document.querySelector('input[name="photo"]')?.addEventListener('change', function() {
+            readURL(this, 'categoryPreview');
+        });
+        
+        // Subcategory image preview
+        document.querySelector('input[name="sub_photo"]')?.addEventListener('change', function() {
+            readURL(this, 'subcategoryPreview');
+        });
+    });
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize form validation
+    const editForm = document.getElementById('editCategoryForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            // Client-side validation
+            const categoryName = document.getElementById('categoryName').value.trim();
+            if (!categoryName) {
+                e.preventDefault();
+                alert('Category name is required');
+                return false;
+            }
+            
+            // If file is selected, validate it
+            const fileInput = document.querySelector('input[name="photo"]');
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                
+                if (!validTypes.includes(file.type)) {
+                    e.preventDefault();
+                    alert('Only JPG, PNG, and GIF images are allowed');
+                    return false;
+                }
+                
+                if (file.size > maxSize) {
+                    e.preventDefault();
+                    alert('Image size must be less than 5MB');
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+    }
+
+    // Image preview functionality
+    function readURL(input, previewId) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById(previewId).src = e.target.result;
+                document.getElementById(previewId).style.display = 'block';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    document.querySelector('input[name="photo"]')?.addEventListener('change', function() {
+        readURL(this, 'categoryPreview');
+    });
+});
+</script>
+</script>
     </script>
 </body>
 </html>

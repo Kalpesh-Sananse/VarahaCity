@@ -89,15 +89,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['photo'])) {
     <title>Add Category - Real Estate</title>
 
     <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome for icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f6f9;
-            background-image: linear-gradient(to right, #f4f6f9, #e9ecef);
+            font-family: 'Poppins', sans-serif;
+            background: #f4f7fc;
+            color: #333;
         }
 
         .form-container {
@@ -106,85 +108,60 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['photo'])) {
             padding: 35px;
             border-radius: 15px;
             background-color: #fff;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
         }
 
         .form-container:hover {
             transform: translateY(-5px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
         }
 
-        .progress-bar-container {
-            display: none;
-            margin-top: 15px;
-            border-radius: 10px;
-            overflow: hidden;
-            background-color: #f0f0f0;
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
         }
 
-        .progress-bar {
-            width: 0%;
-            height: 20px;
-            background: linear-gradient(to right, #4caf50, #8bc34a);
-            border-radius: 10px;
-            transition: width 0.3s ease;
+        .page-header h2 {
+            font-weight: 600;
+            color: #2980b9;
+            position: relative;
+            display: inline-block;
+            padding-bottom: 10px;
         }
 
-        .error-message {
-            color: #d32f2f;
-            background-color: #ffebee;
-            border-left: 4px solid #d32f2f;
-            padding: 10px 15px;
-            margin-top: 15px;
-            border-radius: 4px;
-            display: none;
+        .page-header h2:after {
+            content: '';
+            position: absolute;
+            width: 60%;
+            height: 3px;
+            background: linear-gradient(135deg, #2980b9, #6dd5fa);
+            bottom: 0;
+            left: 20%;
+            border-radius: 3px;
         }
 
-        .success-message {
-            color: #388e3c;
-            background-color: #e8f5e9;
-            border-left: 4px solid #388e3c;
-            padding: 10px 15px;
-            margin-top: 15px;
-            border-radius: 4px;
-            display: none;
-        }
-
-        .btn-submit {
-            padding: 12px 25px;
-            background: linear-gradient(to right, #FF6347, #FF4500);
-            border: none;
-            border-radius: 50px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 10px rgba(255, 99, 71, 0.3);
-        }
-
-        .btn-submit:hover {
-            background: linear-gradient(to right, #FF4500, #FF3300);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(255, 99, 71, 0.4);
+        .form-group {
+            margin-bottom: 25px;
         }
 
         .form-group label {
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2980b9;
+            margin-bottom: 10px;
+            display: block;
         }
 
         .form-control {
             border-radius: 8px;
             padding: 12px;
-            border: 1px solid #ddd;
+            border: 1px solid #e0e0e0;
             transition: all 0.3s;
         }
 
         .form-control:focus {
-            box-shadow: 0 0 0 3px rgba(255, 99, 71, 0.2);
-            border-color: #FF6347;
+            box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.2);
+            border-color: #2980b9;
         }
 
         .file-input-container {
@@ -196,75 +173,109 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['photo'])) {
 
         .file-input-button {
             display: block;
-            padding: 10px 15px;
-            background-color: #f0f0f0;
-            border: 1px dashed #ccc;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #2980b9, #6dd5fa);
+            border: none;
             border-radius: 8px;
+            color: white;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
         }
 
         .file-input-button:hover {
-            background-color: #e6e6e6;
-            border-color: #FF6347;
-        }
-
-        .file-input-button i {
-            margin-right: 8px;
+            background: linear-gradient(135deg, #2573a7, #5ac8f5);
+            transform: translateY(-2px);
         }
 
         .file-name-display {
-            margin-top: 8px;
+            margin-top: 10px;
             font-size: 0.9em;
             color: #666;
         }
 
-        .page-header {
-            text-align: center;
-            margin-bottom: 30px;
+        .btn-submit {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #2980b9, #6dd5fa);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(41, 128, 185, 0.3);
+            width: auto;
+            min-width: 200px;
         }
 
-        .page-header h2 {
-            font-weight: 700;
-            color: #333;
-            position: relative;
-            display: inline-block;
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #2573a7, #5ac8f5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(41, 128, 185, 0.4);
         }
 
-        .page-header h2:after {
-            content: '';
-            position: absolute;
-            width: 60%;
-            height: 3px;
-            background: linear-gradient(to right, #FF6347, #FF4500);
-            bottom: -10px;
-            left: 20%;
-            border-radius: 3px;
+        .alert {
+            border-radius: 8px;
+            border: none;
+            padding: 15px 20px;
         }
 
-        /* Custom styles for navbar */
-        .navbar {
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            background: linear-gradient(to right, #fff, #f8f9fa);
+        .alert-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
         }
 
-        .navbar-brand {
-            font-weight: 700;
-            color: #FF6347 !important;
+        .alert-danger {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border-left: 4px solid #dc2626;
         }
 
-        .nav-item .nav-link {
-            font-weight: 600;
-            color: #555;
-            transition: all 0.3s;
+        .progress-bar-container {
+            margin-top: 15px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #e0e0e0;
+            display: none;
         }
 
-        .nav-item .nav-link:hover {
-            color: #FF6347;
+        .progress-bar {
+            width: 0%;
+            height: 8px;
+            background: linear-gradient(135deg, #2980b9, #6dd5fa);
+            border-radius: 10px;
+            transition: width 0.3s ease;
         }
 
-        /* Animation for form elements */
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .form-container {
+                margin: 20px;
+                padding: 25px;
+            }
+
+            .btn-submit {
+                width: 100%;
+            }
+
+            .page-header h2 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .file-input-button {
+                padding: 10px 15px;
+            }
+        }
+
+        /* Animation */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -276,40 +287,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['photo'])) {
 
         .form-group:nth-child(1) { animation-delay: 0.1s; }
         .form-group:nth-child(2) { animation-delay: 0.2s; }
-        button.btn-submit { animation: fadeIn 0.5s ease-out 0.3s forwards; opacity: 0; }
+        .btn-submit { animation: fadeIn 0.5s ease-out 0.3s forwards; }
     </style>
 </head>
 <body>
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="#"><i class="fas fa-home mr-2"></i>Varaha City</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ml-auto">
-            <li class="nav-item">
-                <a class="nav-link" href="dashboard.php"><i class="fas fa-tachometer-alt mr-1"></i> Dashboard</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="about.php"><i class="fas fa-info-circle mr-1"></i> About Us</a>
-            </li>
-            <li class="nav-item active">
-                <a class="nav-link" href="categories.php"><i class="fas fa-list-alt mr-1"></i> Categories</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="users.php"><i class="fas fa-users mr-1"></i> Users</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="contact.php"><i class="fas fa-envelope mr-1"></i> Contact Us</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt mr-1"></i> Logout</a>
-            </li>
-        </ul>
-    </div>
-</nav>
+<?php include 'navbar.php'; ?>
 
 <!-- Dashboard Content -->
 <div class="container mt-5">
